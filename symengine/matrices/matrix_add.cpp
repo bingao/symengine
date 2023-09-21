@@ -1,8 +1,12 @@
 #include <symengine/add.h>
+#include <symengine/integer.h>
+#include <symengine/rational.h>
 #include <symengine/matrices/matrix_add.h>
+#include <symengine/matrices/matrix_mul.h>
 #include <symengine/matrices/zero_matrix.h>
 #include <symengine/matrices/diagonal_matrix.h>
 #include <symengine/matrices/immutable_dense_matrix.h>
+#include <symengine/matrices/trace.h>
 
 namespace SymEngine
 {
@@ -102,6 +106,9 @@ RCP<const MatrixExpr> matrix_add(const vec_basic &terms)
         }
     }
     check_matching_sizes(expanded);
+    // Coefficients for kept terms, which together with corresponding terms
+    // will be converted to (matrix) multiplication
+    vec_basic coef_keep;
     vec_basic keep;
     RCP<const DiagonalMatrix> diag;
     RCP<const ImmutableDenseMatrix> dense;
@@ -138,7 +145,46 @@ RCP<const MatrixExpr> matrix_add(const vec_basic &terms)
                     dense->nrows(), dense->ncols(), sum);
             }
         } else {
-            keep.push_back(term);
+            // For matrix multiplication, we extract its scalar and factors
+            RCP<const Basic> coef_term;
+            RCP<const Basic> new_term;
+            if (is_a<MatrixMul>(*term)) {
+                coef_term = down_cast<const MatrixMul &>(*term).get_scalar();
+                new_term = matrix_mul(down_cast<const MatrixMul &>(*term).get_factors());
+            }
+            else {
+                coef_term = integer(1);
+                new_term = term;
+            }
+            // Check if the term already exists
+            bool not_exist = true;
+            for (std::size_t i=0; i<coef_keep.size(); ++i) {
+                if (eq(*keep[i], *new_term)) {
+                    coef_keep[i] = add(coef_keep[i], coef_term);
+                    not_exist = false;
+                    break;
+                }
+            }
+            if (not_exist) {
+                coef_keep.push_back(coef_term);
+                keep.push_back(new_term);
+            }
+        }
+    }
+    // Make product of each term and its coefficient
+    for (std::size_t i=0; i<coef_keep.size(); ++i) {
+        if (is_a_Number(*coef_keep[i])
+            && rcp_static_cast<const Number>(coef_keep[i])->is_one())
+        //if ((is_a<Integer>(*coef_keep[i])
+        //    && down_cast<const Integer>(*coef_keep[i]).is_one())
+        //    || (is_a<Rational>(*coef_keep[i])
+        //    && down_cast<const Rational>(*coef_keep[i]).is_one()))
+            continue;
+        if (is_a<Trace>(*keep[i])) {
+            keep[i] = mul(coef_keep[i], keep[i]);
+        }
+        else {
+            keep[i] = matrix_mul({coef_keep[i], keep[i]});
         }
     }
     if (!diag.is_null()) {

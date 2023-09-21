@@ -1029,12 +1029,113 @@ void StrPrinter::bvisit(const Tuple &x)
 
 void StrPrinter::bvisit(const IdentityMatrix &x)
 {
-    str_ = "I";
+    str_ = "I"+parenthesize(apply(x.size()));
 }
 
 void StrPrinter::bvisit(const ZeroMatrix &x)
 {
-    str_ = "0";
+    str_ = "0"+parenthesize(apply(vec_basic({x.nrows(), x.ncols()})));
+}
+
+void StrPrinter::bvisit(const MatrixSymbol &x)
+{
+    str_ = "mat"+parenthesize(x.get_name());
+}
+
+void StrPrinter::bvisit(const DiagonalMatrix &x)
+{
+    vec_basic diag = x.get_container();
+    str_ = "diag"+parenthesize(apply(diag));
+}
+
+void StrPrinter::bvisit(const ImmutableDenseMatrix &x)
+{
+    std::ostringstream o;
+    size_t nrows = x.nrows();
+    size_t ncols = x.ncols();
+    vec_basic values = x.get_values();
+    auto vbegin = values.begin();
+    auto vend = vbegin+ncols;
+    for (size_t i=0; i<nrows; ++i) {
+        if (vbegin != values.begin()) {
+            o << ", ";
+        }
+        o << parenthesize(apply(vec_basic(vbegin, vend)));
+        vbegin = vend;
+        vend = vbegin+ncols;
+    }
+    str_ = parenthesize(o.str());
+}
+
+void StrPrinter::bvisit(const HadamardProduct &x)
+{
+    vec_basic factors = x.get_factors();
+    str_ = "hadamard"+parenthesize(apply(factors));
+}
+
+void StrPrinter::bvisit(const Trace &x)
+{
+    vec_basic args = x.get_args();
+    str_ = "tr"+parenthesize(apply(args[0]));
+}
+
+void StrPrinter::bvisit(const ConjugateMatrix &x)
+{
+    auto arg = x.get_arg();
+    str_ = "conj"+parenthesize(apply(arg));
+}
+
+void StrPrinter::bvisit(const Transpose &x)
+{
+    auto arg = x.get_arg();
+    str_ = "trans"+parenthesize(apply(arg));
+}
+
+void StrPrinter::bvisit(const MatrixAdd &x)
+{
+    std::ostringstream o;
+    bool first = true;
+    for (const auto &term : x.get_terms()) {
+        if (first) {
+            o << apply(term);
+            first = false;
+        } else {
+            o << "+" << apply(term);
+        }
+    }
+    str_ = parenthesize(o.str());
+}
+
+void StrPrinter::bvisit(const MatrixMul &x)
+{
+    std::ostringstream o;
+    bool first = true;
+    auto scalar = x.get_scalar();
+    if (neq(*scalar, *one)) {
+        o << apply(scalar);
+        first = false;
+    }
+    for (const auto &factor : x.get_factors()) {
+        if (first) {
+            o << apply(factor);
+            first = false;
+        } else {
+            o << print_mul() << apply(factor);
+        }
+    }
+    str_ = o.str();
+}
+
+void StrPrinter::bvisit(const MatrixDerivative &x)
+{
+    std::ostringstream o;
+    o << "Derivative(" << apply(x.get_arg());
+    auto m1 = x.get_symbols();
+    for (const auto &elem : m1) {
+        o << ", " << apply(elem);
+    }
+    o << ")";
+    str_ = o.str();
 }
 
 std::string StrPrinter::parenthesizeLT(const RCP<const Basic> &x,

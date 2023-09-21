@@ -111,6 +111,7 @@ set(SRC
     matrices/matrix_add.cpp
     matrices/hadamard_product.cpp
     matrices/matrix_mul.cpp
+    matrices/matrix_derivative.cpp
     matrices/conjugate_matrix.cpp
     matrices/transpose.cpp
     matrices/trace.cpp
@@ -259,6 +260,7 @@ set(HEADERS
     matrices/matrix_add.h
     matrices/hadamard_product.h
     matrices/matrix_mul.h
+    matrices/matrix_derivative.h
     matrices/conjugate_matrix.h
     matrices/size.h
     matrices/transpose.h

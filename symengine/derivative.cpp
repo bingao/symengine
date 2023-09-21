@@ -2,6 +2,7 @@
 #include <symengine/subs.h>
 #include <symengine/symengine_casts.h>
 #include <symengine/derivative.h>
+#include <symengine/matrix_expressions.h>
 
 namespace SymEngine
 {
@@ -697,59 +698,170 @@ void DiffVisitor::bvisit(const Tuple &self)
     throw NotImplementedError("Derivative not implemented");
 }
 
+// Currently we assume that 'x' is a scalar, such that the derivative of a
+// matrix is by a scalar
 void DiffVisitor::bvisit(const IdentityMatrix &self)
 {
-    throw NotImplementedError("Derivative not implemented");
+    result_ = zero_matrix(self.size(), self.size());
 }
 
 void DiffVisitor::bvisit(const ZeroMatrix &self)
 {
-    throw NotImplementedError("Derivative not implemented");
+    result_ = self.rcp_from_this();
 }
 
 void DiffVisitor::bvisit(const MatrixSymbol &self)
 {
-    throw NotImplementedError("Derivative not implemented");
+    result_ = self.diff_impl(x);
 }
 
 void DiffVisitor::bvisit(const DiagonalMatrix &self)
 {
-    throw NotImplementedError("Derivative not implemented");
+    vec_basic d;
+    for (auto &p : self.get_args()) {
+        d.push_back(apply(p));
+    }
+    result_ = diagonal_matrix(d);
 }
 
 void DiffVisitor::bvisit(const ImmutableDenseMatrix &self)
 {
-    throw NotImplementedError("Derivative not implemented");
+    vec_basic d;
+    for (auto &p : self.get_values()) {
+        d.push_back(apply(p));
+    }
+    result_ = immutable_dense_matrix(self.nrows(), self.ncols(), d);
 }
 
 void DiffVisitor::bvisit(const MatrixAdd &self)
 {
-    throw NotImplementedError("Derivative not implemented");
+    // (A+B+C+...)' = A'+B'+C'+...
+    vec_basic terms;
+    for (const auto &term : self.get_terms()) {
+        terms.push_back(apply(term));
+    }
+    result_ = matrix_add(terms);
 }
 
 void DiffVisitor::bvisit(const HadamardProduct &self)
 {
-    throw NotImplementedError("Derivative not implemented");
+    // The rule for the differentiation of the Hadamard product is the same as
+    // the matrix multiplication, see
+    // https://en.wikipedia.org/wiki/Matrix_calculus#Matrix-by-scalar_identities
+    vec_basic terms;
+    auto args = self.get_args();
+    for (std::size_t i=0; i<args.size(); ++i) {
+        apply(args[i]);
+        // Skip if the derivative is a zero number or a zero matrix
+        if (is_a_Number(*result_)
+            && down_cast<const Number &>(*result_).is_zero()) {
+            continue;
+        } else if (is_a_MatrixExpr(*result_)
+            && is_a<ZeroMatrix>(down_cast<const MatrixExpr &>(*result_))) {
+            continue;
+        }
+        auto iarg = args[i];
+        args[i] = result_;
+        terms.push_back(hadamard_product(args));
+        args[i] = iarg;
+    }
+    result_ = matrix_add(terms);
 }
 
 void DiffVisitor::bvisit(const MatrixMul &self)
 {
-    throw NotImplementedError("Derivative not implemented");
+    // (s*A*B*C*...)' = s'A*B*C*... + s*A'*B*C*... + s*A*B'*C*... + s*A*B*C'*... + ...
+    vec_basic terms;
+    auto args = self.get_args();
+    for (std::size_t i=0; i<args.size(); ++i) {
+        apply(args[i]);
+        // Skip if the derivative is a zero number or a zero matrix
+        if (is_a_Number(*result_)
+            && down_cast<const Number &>(*result_).is_zero()) {
+            continue;
+        } else if (is_a_MatrixExpr(*result_)
+            && is_a<ZeroMatrix>(down_cast<const MatrixExpr &>(*result_))) {
+            continue;
+        }
+        auto iarg = args[i];
+        args[i] = result_;
+        terms.push_back(matrix_mul(args));
+        args[i] = iarg;
+    }
+    result_ = matrix_add(terms);
+}
+
+// Modified from void DiffVisitor::bvisit(const Derivative &self)
+void DiffVisitor::bvisit(const MatrixDerivative &self)
+{
+    apply(self.get_arg());
+    RCP<const Basic> ret = result_;
+    if (not is_a_MatrixExpr(*ret)) {
+        throw SymEngineException("Invalid type from the derivative of MatrixExpr.");
+    }
+    if (is_a<ZeroMatrix>(*ret)) {
+        result_ = rcp_static_cast<const ZeroMatrix>(ret);
+        //result_ = zero_matrix(down_cast<const ZeroMatrix &>(*ret).nrows(),
+        //                      down_cast<const ZeroMatrix &>(*ret).ncols());
+        //FIXME: does void DiffVisitor::bvisit(const Derivative &self) miss 'return'?
+        return;
+    }
+    multiset_basic t = self.get_symbols();
+    for (auto &p : t) {
+        // If x is already there in symbols multi-set add x to the symbols
+        // multi-set
+        if (eq(*p, *x)) {
+            t.insert(x);
+            result_ = MatrixDerivative::create(self.get_arg(), t);
+            return;
+        }
+    }
+    // Avoid cycles
+    if (is_a<MatrixDerivative>(*ret)
+        && eq(*down_cast<const MatrixDerivative &>(*ret).get_arg(),
+              *self.get_arg())) {
+        t.insert(x);
+        result_ = MatrixDerivative::create(self.get_arg(), t);
+        return;
+    }
+    for (auto &p : t) {
+        ret = diff(ret, rcp_static_cast<const Symbol>(p));
+    }
+    result_ = ret;
 }
 
 void DiffVisitor::bvisit(const ConjugateMatrix &self)
 {
-    throw NotImplementedError("Derivative not implemented");
+    auto d = apply(self.get_arg());
+    if (is_a_MatrixExpr(*d)) {
+        result_ = conjugate_matrix(rcp_static_cast<const MatrixExpr>(d->rcp_from_this()));
+    }
+    else {
+        throw SymEngineException("Invalid type from the derivative of MatrixExpr.");
+    }
 }
 
 void DiffVisitor::bvisit(const Transpose &self)
 {
-    throw NotImplementedError("Derivative not implemented");
+    auto d = apply(self.get_arg());
+    if (is_a_MatrixExpr(*d)) {
+        result_ = transpose(rcp_static_cast<const MatrixExpr>(d->rcp_from_this()));
+    }
+    else {
+        throw SymEngineException("Invalid type from the derivative of MatrixExpr.");
+    }
 }
 
 void DiffVisitor::bvisit(const Trace &self)
 {
-    throw NotImplementedError("Derivative not implemented");
+    // [tr(A)]' = tr(A')
+    auto d = apply(self.get_args()[0]);
+    if (is_a_MatrixExpr(*d)) {
+        result_ = trace(rcp_static_cast<const MatrixExpr>(d->rcp_from_this()));
+    }
+    else {
+        throw SymEngineException("Invalid type from the derivative of MatrixExpr.");
+    }
 }
 
 void DiffVisitor::bvisit(const Boolean &self)

@@ -194,6 +194,16 @@ public:
     void bvisit(const Tuple &x);
     void bvisit(const IdentityMatrix &x);
     void bvisit(const ZeroMatrix &x);
+    void bvisit(const MatrixSymbol &x);
+    void bvisit(const DiagonalMatrix &x);
+    void bvisit(const ImmutableDenseMatrix &x);
+    void bvisit(const HadamardProduct &x);
+    void bvisit(const Trace &x);
+    void bvisit(const ConjugateMatrix &x);
+    void bvisit(const Transpose &x);
+    void bvisit(const MatrixAdd &x);
+    void bvisit(const MatrixMul &x);
+    void bvisit(const MatrixDerivative &x);
 
     std::string apply(const RCP<const Basic> &b);
     std::string apply(const vec_basic &v);

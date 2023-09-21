@@ -2,7 +2,9 @@
 #define SYMENGINE_MATRICES_MATRIX_SYMBOL_H
 
 #include <symengine/basic.h>
+#include <symengine/symbol.h>
 #include <symengine/matrices/matrix_expr.h>
+#include <symengine/matrices/matrix_derivative.h>
 
 namespace SymEngine
 {
@@ -31,6 +33,12 @@ public:
     vec_basic get_args() const override
     {
         return {};
+    }
+
+    // The defaut behaviour for diff can be overridden
+    virtual RCP<const MatrixExpr> diff_impl(const RCP<const Symbol> &s) const
+    {
+        return MatrixDerivative::create(rcp_from_this_cast<const MatrixExpr>(), {s});
     }
 };
 
