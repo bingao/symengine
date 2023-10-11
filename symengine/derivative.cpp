@@ -736,10 +736,25 @@ void DiffVisitor::bvisit(const ImmutableDenseMatrix &self)
 void DiffVisitor::bvisit(const MatrixAdd &self)
 {
     // (A+B+C+...)' = A'+B'+C'+...
+    RCP<const Basic> zero_derivative;
     vec_basic terms;
     for (const auto &term : self.get_terms()) {
-        terms.push_back(apply(term));
+        apply(term);
+        // Skip if the derivative is a zero number or a zero matrix
+        if (is_a_Number(*result_)
+            && down_cast<const Number &>(*result_).is_zero()) {
+            if (zero_derivative->is_null()) zero_derivative = result_;
+            continue;
+        } else if (is_a_MatrixExpr(*result_)
+            && is_a<ZeroMatrix>(down_cast<const MatrixExpr &>(*result_))) {
+            if (zero_derivative->is_null()) zero_derivative = result_;
+            continue;
+        }
+        terms.push_back(result_);
     }
+    // If the derivative of the matrix sum is zero, we return the first
+    // encountered zero derivative term
+    if (terms.empty()) return zero_derivative;
     result_ = matrix_add(terms);
 }
 
@@ -748,6 +763,7 @@ void DiffVisitor::bvisit(const HadamardProduct &self)
     // The rule for the differentiation of the Hadamard product is the same as
     // the matrix multiplication, see
     // https://en.wikipedia.org/wiki/Matrix_calculus#Matrix-by-scalar_identities
+    RCP<const Basic> zero_derivative;
     vec_basic terms;
     auto args = self.get_args();
     for (std::size_t i=0; i<args.size(); ++i) {
@@ -755,9 +771,11 @@ void DiffVisitor::bvisit(const HadamardProduct &self)
         // Skip if the derivative is a zero number or a zero matrix
         if (is_a_Number(*result_)
             && down_cast<const Number &>(*result_).is_zero()) {
+            if (zero_derivative->is_null()) zero_derivative = result_;
             continue;
         } else if (is_a_MatrixExpr(*result_)
             && is_a<ZeroMatrix>(down_cast<const MatrixExpr &>(*result_))) {
+            if (zero_derivative->is_null()) zero_derivative = result_;
             continue;
         }
         auto iarg = args[i];
@@ -765,12 +783,16 @@ void DiffVisitor::bvisit(const HadamardProduct &self)
         terms.push_back(hadamard_product(args));
         args[i] = iarg;
     }
+    // If the derivative of the Hadamard product is zero, we return the first
+    // encountered zero derivative term
+    if (terms.empty()) return zero_derivative;
     result_ = matrix_add(terms);
 }
 
 void DiffVisitor::bvisit(const MatrixMul &self)
 {
     // (s*A*B*C*...)' = s'A*B*C*... + s*A'*B*C*... + s*A*B'*C*... + s*A*B*C'*... + ...
+    RCP<const Basic> zero_derivative;
     vec_basic terms;
     auto args = self.get_args();
     for (std::size_t i=0; i<args.size(); ++i) {
@@ -778,9 +800,11 @@ void DiffVisitor::bvisit(const MatrixMul &self)
         // Skip if the derivative is a zero number or a zero matrix
         if (is_a_Number(*result_)
             && down_cast<const Number &>(*result_).is_zero()) {
+            if (zero_derivative->is_null()) zero_derivative = result_;
             continue;
         } else if (is_a_MatrixExpr(*result_)
             && is_a<ZeroMatrix>(down_cast<const MatrixExpr &>(*result_))) {
+            if (zero_derivative->is_null()) zero_derivative = result_;
             continue;
         }
         auto iarg = args[i];
@@ -788,6 +812,9 @@ void DiffVisitor::bvisit(const MatrixMul &self)
         terms.push_back(matrix_mul(args));
         args[i] = iarg;
     }
+    // If the derivative of the matrix product is zero, we return the first
+    // encountered zero derivative term
+    if (terms.empty()) return zero_derivative;
     result_ = matrix_add(terms);
 }
 
