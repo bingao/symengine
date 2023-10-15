@@ -743,19 +743,22 @@ void DiffVisitor::bvisit(const MatrixAdd &self)
         // Skip if the derivative is a zero number or a zero matrix
         if (is_a_Number(*result_)
             && down_cast<const Number &>(*result_).is_zero()) {
-            if (zero_derivative->is_null()) zero_derivative = result_;
+            if (zero_derivative.is_null()) zero_derivative = result_;
             continue;
         } else if (is_a_MatrixExpr(*result_)
             && is_a<ZeroMatrix>(down_cast<const MatrixExpr &>(*result_))) {
-            if (zero_derivative->is_null()) zero_derivative = result_;
+            if (zero_derivative.is_null()) zero_derivative = result_;
             continue;
         }
         terms.push_back(result_);
     }
     // If the derivative of the matrix sum is zero, we return the first
     // encountered zero derivative term
-    if (terms.empty()) return zero_derivative;
-    result_ = matrix_add(terms);
+    if (terms.empty()) {
+        result_ = zero_derivative;
+    } else {
+        result_ = matrix_add(terms);
+    }
 }
 
 void DiffVisitor::bvisit(const HadamardProduct &self)
@@ -771,11 +774,11 @@ void DiffVisitor::bvisit(const HadamardProduct &self)
         // Skip if the derivative is a zero number or a zero matrix
         if (is_a_Number(*result_)
             && down_cast<const Number &>(*result_).is_zero()) {
-            if (zero_derivative->is_null()) zero_derivative = result_;
+            if (zero_derivative.is_null()) zero_derivative = result_;
             continue;
         } else if (is_a_MatrixExpr(*result_)
             && is_a<ZeroMatrix>(down_cast<const MatrixExpr &>(*result_))) {
-            if (zero_derivative->is_null()) zero_derivative = result_;
+            if (zero_derivative.is_null()) zero_derivative = result_;
             continue;
         }
         auto iarg = args[i];
@@ -785,8 +788,11 @@ void DiffVisitor::bvisit(const HadamardProduct &self)
     }
     // If the derivative of the Hadamard product is zero, we return the first
     // encountered zero derivative term
-    if (terms.empty()) return zero_derivative;
-    result_ = matrix_add(terms);
+    if (terms.empty()) {
+        result_ = zero_derivative;
+    } else {
+        result_ = matrix_add(terms);
+    }
 }
 
 void DiffVisitor::bvisit(const MatrixMul &self)
@@ -800,11 +806,11 @@ void DiffVisitor::bvisit(const MatrixMul &self)
         // Skip if the derivative is a zero number or a zero matrix
         if (is_a_Number(*result_)
             && down_cast<const Number &>(*result_).is_zero()) {
-            if (zero_derivative->is_null()) zero_derivative = result_;
+            if (zero_derivative.is_null()) zero_derivative = result_;
             continue;
         } else if (is_a_MatrixExpr(*result_)
             && is_a<ZeroMatrix>(down_cast<const MatrixExpr &>(*result_))) {
-            if (zero_derivative->is_null()) zero_derivative = result_;
+            if (zero_derivative.is_null()) zero_derivative = result_;
             continue;
         }
         auto iarg = args[i];
@@ -814,8 +820,11 @@ void DiffVisitor::bvisit(const MatrixMul &self)
     }
     // If the derivative of the matrix product is zero, we return the first
     // encountered zero derivative term
-    if (terms.empty()) return zero_derivative;
-    result_ = matrix_add(terms);
+    if (terms.empty()) {
+        result_ = zero_derivative;
+    } else {
+        result_ = matrix_add(terms);
+    }
 }
 
 // Modified from void DiffVisitor::bvisit(const Derivative &self)
