@@ -848,7 +848,7 @@ void DiffVisitor::bvisit(const MatrixDerivative &self)
         // multi-set
         if (eq(*p, *x)) {
             t.insert(x);
-            result_ = MatrixDerivative::create(self.get_arg(), t);
+            result_ = matrix_derivative(self.get_arg(), t);
             return;
         }
     }
@@ -857,7 +857,7 @@ void DiffVisitor::bvisit(const MatrixDerivative &self)
         && eq(*down_cast<const MatrixDerivative &>(*ret).get_arg(),
               *self.get_arg())) {
         t.insert(x);
-        result_ = MatrixDerivative::create(self.get_arg(), t);
+        result_ = matrix_derivative(self.get_arg(), t);
         return;
     }
     for (auto &p : t) {

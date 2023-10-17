@@ -38,7 +38,7 @@ public:
     // The defaut behaviour for diff can be overridden
     virtual RCP<const Basic> diff_impl(const RCP<const Symbol> &s) const
     {
-        return MatrixDerivative::create(rcp_from_this_cast<const MatrixExpr>(), {s});
+        return matrix_derivative(rcp_from_this_cast<const MatrixExpr>(), {s});
     }
 };
 

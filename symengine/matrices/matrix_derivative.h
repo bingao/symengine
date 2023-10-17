@@ -16,18 +16,19 @@ private:
     multiset_basic x_; //! x, y, ...
 
 public:
-    IMPLEMENT_TYPEID(SYMENGINE_MATRIXDERIVATIVE)
-    MatrixDerivative(const RCP<const MatrixExpr> &arg, const multiset_basic &x);
-
-    static RCP<const MatrixDerivative> create(const RCP<const MatrixExpr> &arg,
-                                              const multiset_basic &x)
+    MatrixDerivative(const RCP<const MatrixExpr> &arg, const multiset_basic &x):
+        arg_{arg}, x_{x}
     {
-        return make_rcp<const MatrixDerivative>(arg, x);
+        SYMENGINE_ASSIGN_TYPEID();
+        SYMENGINE_ASSERT(is_canonical(arg, x));
     }
 
+    IMPLEMENT_TYPEID(SYMENGINE_MATRIXDERIVATIVE)
     hash_t __hash__() const override;
     bool __eq__(const Basic &o) const override;
     int compare(const Basic &o) const override;
+    bool is_canonical(const RCP<const MatrixExpr> &arg,
+                      const multiset_basic &x) const;
     inline RCP<const MatrixExpr> get_arg() const
     {
         return arg_;
@@ -42,9 +43,12 @@ public:
         args.insert(args.end(), x_.begin(), x_.end());
         return args;
     }
-    bool is_canonical(const RCP<const MatrixExpr> &arg,
-                      const multiset_basic &x) const;
 };
+
+// Helper function to create `MatrixDerivative` that should be always used
+// instead of the constructor of `MatrixDerivative`
+RCP<const MatrixExpr> matrix_derivative(const RCP<const MatrixExpr> &arg,
+                                        const multiset_basic &x);
 
 } // namespace SymEngine
 

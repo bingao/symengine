@@ -1,18 +1,12 @@
 #include <symengine/basic.h>
+#include <symengine/symengine_exception.h>
+#include <symengine/symengine_rcp.h>
 #include <symengine/matrices/matrix_expr.h>
 #include <symengine/matrices/matrix_symbol.h>
 #include <symengine/matrices/matrix_derivative.h>
 
 namespace SymEngine
 {
-
-MatrixDerivative::MatrixDerivative(const RCP<const MatrixExpr> &arg,
-                                   const multiset_basic &x)
-: arg_{arg}, x_{x}
-{
-    SYMENGINE_ASSIGN_TYPEID()
-    SYMENGINE_ASSERT(is_canonical(arg, x))
-}
 
 hash_t MatrixDerivative::__hash__() const
 {
@@ -55,6 +49,28 @@ bool MatrixDerivative::is_canonical(const RCP<const MatrixExpr> &arg,
     if (is_a<MatrixSymbol>(*arg))
         return true;
     return false;
+}
+
+RCP<const MatrixExpr> matrix_derivative(const RCP<const MatrixExpr> &arg,
+                                        const multiset_basic &x)
+{
+    if (is_a<MatrixSymbol>(*arg)) {
+        return make_rcp<const MatrixDerivative>(arg, x);
+    }
+    else {
+        RCP<const MatrixExpr> result = arg;
+        for (const auto &a : x) {
+            if (is_a<Symbol>(*a)) {
+                result = rcp_dynamic_cast<const MatrixExpr>(
+                    result->diff(rcp_dynamic_cast<const Symbol>(a))
+                );
+            }
+            else {
+                throw DomainError("Invalid variable type for differentiation.");
+            }
+        }
+        return result;
+    }
 }
 
 } // namespace SymEngine
