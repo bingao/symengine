@@ -104,10 +104,10 @@ void basic_free_stack(basic s);
 // Use these two functions to allocate and free 'basic' on a heap. The pointer
 // can then be used in all the other methods below (i.e. the methods that
 // accept 'basic s' work no matter if 's' is stack or heap allocated).
-basic_struct *basic_new_heap();
+basic_struct *basic_new_heap(void);
 void basic_free_heap(basic_struct *s);
 
-const char *symengine_version();
+const char *symengine_version(void);
 
 //! Use these functions to get the commonly used constants as basic.
 
@@ -167,6 +167,9 @@ int number_is_negative(const basic s);
 int number_is_positive(const basic s);
 //! Returns 1 if s is complex; 0 otherwise
 int number_is_complex(const basic s);
+
+//! Returns 1 if `e` contains the symbol `s`; 0 otherwise
+int basic_has_symbol(const basic e, const basic s);
 
 //! Assign to s, a long.
 CWRAPPER_OUTPUT_TYPE integer_set_si(basic s, long i);
@@ -473,7 +476,7 @@ int is_a_Set(const basic c);
 
 typedef struct CVectorInt CVectorInt;
 
-CVectorInt *vectorint_new();
+CVectorInt *vectorint_new(void);
 
 // 'data' must point to allocated memory of size 'size'. The function returns 0
 // if std::vector<int> can be initialized using placement new into 'data',
@@ -494,7 +497,7 @@ int vectorint_get(CVectorInt *self, int n);
 
 typedef struct CVecBasic CVecBasic;
 
-CVecBasic *vecbasic_new();
+CVecBasic *vecbasic_new(void);
 void vecbasic_free(CVecBasic *self);
 CWRAPPER_OUTPUT_TYPE vecbasic_push_back(CVecBasic *self, const basic value);
 CWRAPPER_OUTPUT_TYPE vecbasic_get(CVecBasic *self, size_t n, basic result);
@@ -517,8 +520,8 @@ CWRAPPER_OUTPUT_TYPE basic_mul_vec(basic s, const CVecBasic *d);
 typedef struct CDenseMatrix CDenseMatrix;
 typedef struct CSparseMatrix CSparseMatrix;
 
-CDenseMatrix *dense_matrix_new();
-CSparseMatrix *sparse_matrix_new();
+CDenseMatrix *dense_matrix_new(void);
+CSparseMatrix *sparse_matrix_new(void);
 
 void dense_matrix_free(CDenseMatrix *self);
 //! Return a DenseMatrix with l's elements
@@ -657,7 +660,7 @@ int sparse_matrix_eq(CSparseMatrix *lhs, CSparseMatrix *rhs);
 
 //! Wrapper for set_basic
 
-CSetBasic *setbasic_new();
+CSetBasic *setbasic_new(void);
 void setbasic_free(CSetBasic *self);
 //! Returns 1 if insert is successful and 0 if set already contains the value
 //! and insertion is unsuccessful
@@ -673,7 +676,7 @@ size_t setbasic_size(CSetBasic *self);
 
 typedef struct CMapBasicBasic CMapBasicBasic;
 
-CMapBasicBasic *mapbasicbasic_new();
+CMapBasicBasic *mapbasicbasic_new(void);
 void mapbasicbasic_free(CMapBasicBasic *self);
 void mapbasicbasic_insert(CMapBasicBasic *self, const basic key,
                           const basic mapped);
@@ -725,7 +728,7 @@ CWRAPPER_OUTPUT_TYPE basic_solve_poly(CSetBasic *r, const basic f,
 
 //! Returns a new char pointer to the ascii_art string
 //! The caller is responsible to free the pointer using 'basic_str_free'.
-char *ascii_art_str();
+char *ascii_art_str(void);
 
 //! Wrapper for ntheory
 //! Greatest Common Divisor
@@ -775,7 +778,7 @@ CWRAPPER_OUTPUT_TYPE basic_as_numer_denom(basic numer, basic denom,
 
 //! Wrapper for LambdaRealDoubleVisitor
 typedef struct CLambdaRealDoubleVisitor CLambdaRealDoubleVisitor;
-CLambdaRealDoubleVisitor *lambda_real_double_visitor_new();
+CLambdaRealDoubleVisitor *lambda_real_double_visitor_new(void);
 void lambda_real_double_visitor_init(CLambdaRealDoubleVisitor *self,
                                      const CVecBasic *args,
                                      const CVecBasic *exprs, int perform_cse);
@@ -788,7 +791,7 @@ void lambda_real_double_visitor_free(CLambdaRealDoubleVisitor *self);
 #ifdef HAVE_SYMENGINE_LLVM
 // double
 typedef struct CLLVMDoubleVisitor CLLVMDoubleVisitor;
-CLLVMDoubleVisitor *llvm_double_visitor_new();
+CLLVMDoubleVisitor *llvm_double_visitor_new(void);
 void llvm_double_visitor_init(CLLVMDoubleVisitor *self, const CVecBasic *args,
                               const CVecBasic *exprs, int perform_cse,
                               int opt_level);
@@ -797,7 +800,7 @@ void llvm_double_visitor_call(CLLVMDoubleVisitor *self, double *const outs,
 void llvm_double_visitor_free(CLLVMDoubleVisitor *self);
 // float
 typedef struct CLLVMFloatVisitor CLLVMFloatVisitor;
-CLLVMFloatVisitor *llvm_float_visitor_new();
+CLLVMFloatVisitor *llvm_float_visitor_new(void);
 void llvm_float_visitor_init(CLLVMFloatVisitor *self, const CVecBasic *args,
                              const CVecBasic *exprs, int perform_cse,
                              int opt_level);
@@ -808,7 +811,7 @@ void llvm_float_visitor_free(CLLVMFloatVisitor *self);
 #ifdef SYMENGINE_HAVE_LLVM_LONG_DOUBLE
 // long double
 typedef struct CLLVMLongDoubleVisitor CLLVMLongDoubleVisitor;
-CLLVMLongDoubleVisitor *llvm_long_double_visitor_new();
+CLLVMLongDoubleVisitor *llvm_long_double_visitor_new(void);
 void llvm_long_double_visitor_init(CLLVMLongDoubleVisitor *self,
                                    const CVecBasic *args,
                                    const CVecBasic *exprs, int perform_cse,
@@ -826,7 +829,7 @@ CWRAPPER_OUTPUT_TYPE basic_cse(CVecBasic *replacement_syms,
                                const CVecBasic *exprs);
 
 //! Print stacktrace on segfault
-void symengine_print_stack_on_segfault();
+void symengine_print_stack_on_segfault(void);
 
 #ifdef __cplusplus
 }
