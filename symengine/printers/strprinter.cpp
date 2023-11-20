@@ -1112,7 +1112,37 @@ void StrPrinter::bvisit(const MatrixMul &x)
     bool first = true;
     auto scalar = x.get_scalar();
     if (neq(*scalar, *one)) {
-        o << apply(scalar);
+        if (is_a<const Add>(*scalar)) {
+            o << "(" << apply(scalar) << ")";
+        } else if (is_a<const Complex>(*scalar)) {
+            auto cmplx_scalar = rcp_dynamic_cast<const Complex>(scalar);
+            if (cmplx_scalar->real_part()->is_zero()
+                || cmplx_scalar->imaginary_part()->is_zero()) {
+                o << apply(scalar);
+            } else {
+                o << "(" << apply(scalar) << ")";
+            }
+#ifdef HAVE_SYMENGINE_MPC
+        } else if (is_a<const ComplexMPC>(*scalar)) {
+            auto cmplx_scalar = rcp_dynamic_cast<const ComplexMPC>(scalar);
+            if (cmplx_scalar->real_part()->is_zero()
+                || cmplx_scalar->imaginary_part()->is_zero()) {
+                o << apply(scalar);
+            } else {
+                o << "(" << apply(scalar) << ")";
+            }
+#endif
+        } else if (is_a<const ComplexDouble>(*scalar)) {
+            auto cmplx_scalar = rcp_dynamic_cast<const ComplexDouble>(scalar);
+            if (cmplx_scalar->real_part()->is_zero()
+                || cmplx_scalar->imaginary_part()->is_zero()) {
+                o << apply(scalar);
+            } else {
+                o << "(" << apply(scalar) << ")";
+            }
+        } else {
+            o << apply(scalar);
+        }
         first = false;
     }
     for (const auto &factor : x.get_factors()) {
