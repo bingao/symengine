@@ -86,7 +86,7 @@ public:
 
     void bvisit(const MatrixAdd &x)
     {
-        auto vec = x.get_terms();
+        auto vec = x.get_args();
         all_same_size(vec);
     }
 

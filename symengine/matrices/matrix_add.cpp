@@ -24,7 +24,26 @@ bool MatrixAdd::__eq__(const Basic &o) const
 {
     if (is_a<MatrixAdd>(o)) {
         const MatrixAdd &other = down_cast<const MatrixAdd &>(o);
-        return unified_eq(terms_, other.terms_);
+        // Because matrix addition satisfies commutative property and
+        // associative property, so the order of terms does not matter.
+        //
+        // Converting `terms_` to `multiset_basic` is also problematic. Because
+        // if a term contains `MatrixAdd` as one of its arguments, `__hash__()`
+        // may be different if the `MatrixAdd` argument has `terms_` in
+        // different order.
+        if (terms_.size() != other.terms_.size()) return false;
+        for (const auto& p: terms_) {
+            auto found = false;
+            for (const auto& q: other.terms_) {
+                // Do not use `eq(*p, *q)` or `unified_eq(p, q)`
+                if (p->__eq__(*q)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) return false;
+        }
+        return true;
     }
     return false;
 }
@@ -33,6 +52,8 @@ int MatrixAdd::compare(const Basic &o) const
 {
     SYMENGINE_ASSERT(is_a<MatrixAdd>(o));
     const MatrixAdd &other = down_cast<const MatrixAdd &>(o);
+    // Not sure if we should compare `terms_` in a similar manner to that in
+    // `__eq__` function
     return unified_compare(terms_, other.terms_);
 }
 

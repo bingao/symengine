@@ -115,7 +115,7 @@ public:
             for (auto &factor : x.get_factors()) {
                 if (is_a<const MatrixAdd>(*factor)) {
                     // Expand `MatrixAdd`
-                    auto terms = down_cast<const MatrixAdd &>(*factor).get_terms();
+                    auto terms = down_cast<const MatrixAdd &>(*factor).get_args();
                     auto size_terms = terms.size();
                     auto size_args = args.size();
                     if (size_args == 0) {

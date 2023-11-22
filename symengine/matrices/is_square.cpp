@@ -61,7 +61,7 @@ public:
 
     void bvisit(const MatrixAdd &x)
     {
-        check_vector(x.get_terms());
+        check_vector(x.get_args());
     }
 
     void bvisit(const HadamardProduct &x)

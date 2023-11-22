@@ -62,7 +62,7 @@ public:
     void bvisit(const MatrixAdd &x)
     {
         bool found_nonupper = false;
-        for (auto &elt : x.get_terms()) {
+        for (auto &elt : x.get_args()) {
             elt->accept(*this);
             if (is_indeterminate(is_upper_)) {
                 return;

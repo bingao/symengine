@@ -67,7 +67,7 @@ public:
     void bvisit(const MatrixAdd &x)
     {
         bool found_nondiag = false;
-        for (auto &elt : x.get_terms()) {
+        for (auto &elt : x.get_args()) {
             elt->accept(*this);
             if (is_indeterminate(is_diagonal_)) {
                 return;
