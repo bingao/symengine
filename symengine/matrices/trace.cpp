@@ -102,60 +102,25 @@ public:
     }
 
     // We need to consider (i) the trace is invariant under circular shifts,
-    // (ii) tr(c*A) = c*tr(A) where c is a scalar, and (iii) tr((A+B)*C) =
-    // tr(A*C) + tr(B*C)
+    // (ii) tr(c*A) = c*tr(A) where c is a scalar
     void bvisit(const MatrixMul &x)
     {
         auto scalar = x.get_scalar();
         if (eq(*scalar, *zero)) {
             trace_ = zero;
         } else {
-            std::vector<vec_basic> args;
-            // We first need to find out if there is MatrixAdd as a factor
-            for (auto &factor : x.get_factors()) {
-                if (is_a<const MatrixAdd>(*factor)) {
-                    // Expand `MatrixAdd`
-                    auto terms = down_cast<const MatrixAdd &>(*factor).get_args();
-                    auto size_terms = terms.size();
-                    auto size_args = args.size();
-                    if (size_args == 0) {
-                        args.reserve(size_terms);
-                        for (std::size_t i = 0; i < size_terms; ++i)
-                            args.push_back(vec_basic({terms[i]}));
-                    } else {
-                        args.reserve(size_args * size_terms);
-                        for (std::size_t i = 1; i < size_terms; ++i)
-                            for (std::size_t j = 0; j < size_args; ++j)
-                                args.push_back(args[j]);
-                        auto arg = args.begin();
-                        for (std::size_t i = 0; i < size_terms; ++i)
-                            for (std::size_t j = 0; j < size_args; ++j, ++arg)
-                                arg->push_back(terms[i]);
-                    }
-                } else {
-                    if (args.empty()) {
-                        args.push_back(vec_basic({factor}));
-                    } else {
-                        for (auto &arg : args) arg.push_back(factor);
-                    }
-                }
+            auto factors = x.get_factors();
+            // Rearrange the factors by using the cyclic property
+            auto min_factor = std::min_element(
+                factors.begin(), factors.end(), RCPBasicKeyLess()
+            );
+            if (min_factor == factors.begin()) {
+                trace_ = make_rcp<const Trace>(matrix_mul(factors));
+            } else {
+                auto sorted_factors = vec_basic(min_factor, factors.end());
+                sorted_factors.insert(sorted_factors.end(), factors.begin(), min_factor);
+                trace_ = make_rcp<const Trace>(matrix_mul(sorted_factors));
             }
-            vec_basic terms;
-            for (auto &arg: args) {
-                // For each `MatrixMul`, we rearrange the factors by using the
-                // cyclic property
-                auto min_factor = std::min_element(
-                    arg.begin(), arg.end(), RCPBasicKeyLess()
-                );
-                if (min_factor == arg.begin()) {
-                    terms.push_back(make_rcp<const Trace>(matrix_mul(arg)));
-                } else {
-                    auto factors = vec_basic(min_factor, arg.end());
-                    factors.insert(factors.end(), arg.begin(), min_factor);
-                    terms.push_back(make_rcp<const Trace>(matrix_mul(factors)));
-                }
-            }
-            trace_ = add(terms);
             if (neq(*scalar, *one)) trace_ = mul(trace_, scalar);
         }
     }
