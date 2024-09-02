@@ -114,12 +114,19 @@ public:
             auto min_factor = std::min_element(
                 factors.begin(), factors.end(), RCPBasicKeyLess()
             );
+            RCP<const MatrixExpr> product;
             if (min_factor == factors.begin()) {
-                trace_ = make_rcp<const Trace>(matrix_mul(factors));
+                product = matrix_mul(factors);
             } else {
                 auto sorted_factors = vec_basic(min_factor, factors.end());
                 sorted_factors.insert(sorted_factors.end(), factors.begin(), min_factor);
-                trace_ = make_rcp<const Trace>(matrix_mul(sorted_factors));
+                product = matrix_mul(sorted_factors);
+            }
+            if (is_a<const MatrixMul>(*product)) {
+                trace_ = make_rcp<const Trace>(product);
+            } else {
+                // Result is saved in `trace_`
+                product->accept(*this);
             }
             if (neq(*scalar, *one)) trace_ = mul(trace_, scalar);
         }
